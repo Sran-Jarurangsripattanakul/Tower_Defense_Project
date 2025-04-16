@@ -1,0 +1,12 @@
+{
+  "levels": {
+    "level1": {
+      "completed": true,
+      "file": "assets/maps/level1.tmx"
+    },
+    "level2": {
+      "completed": false,
+      "file": "assets/maps/level2.tmx"
+    }
+  }
+}
