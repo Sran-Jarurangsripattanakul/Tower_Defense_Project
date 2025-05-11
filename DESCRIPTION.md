@@ -114,7 +114,7 @@ A simple viewer script (`stats_viewer.py`) or Jupyter notebook can generate thes
 
 ## 📐 UML Class Diagram
 
-![UML Diagram](assets/uml/tower_defense_class_diagram.png)
+![Image](https://github.com/user-attachments/assets/319b5df5-b243-4b4c-ad49-c3f39a9b8df4)
 
 *(Place your `tower_defense_class_diagram.png` under `assets/uml/`.)*
 
