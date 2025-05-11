@@ -8,7 +8,7 @@ git clone https://github.com/Sran-Jarurangsripattanakul/Tower_Defense_Project.gi
 cd Tower_Defense_Project
 
 # 2. Install dependencies
-pip install -r requirements.txt
+pip install dependencies in the requirements.txt
 
 # 3. Run the game
-python main_menu.py
+run python in main_menu.py
