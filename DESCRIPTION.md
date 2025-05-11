@@ -1,64 +1,146 @@
-# Tower Defense Game - Project Description  
+# Tower Defense
 
-## **Overview**  
-This project is a **Python-based Tower Defense game** built using **Pygame** and **PyTMX** for map loading. The game follows classic tower defense mechanics where players place defensive towers along a path to stop waves of enemies from reaching their destination.  
-
-### **Key Features (Implemented & Planned)**  
-
-#### **Core Gameplay**  
-✅ **Pathfinding:** Enemies follow a predefined path extracted from TMX maps.  
-✅ **Tower Mechanics:** Basic towers that target and damage enemies within range.  
-✅ **Enemy System:** Enemies move along the path and can take damage before being defeated.  
-❌ **Wave System:** Currently missing—enemies spawn continuously without structured waves.  
-❌ **Currency & Economy:** No money system for building/upgrading towers.  
-❌ **Win/Lose Conditions:** No end-game logic (e.g., base health, victory conditions).  
-
-#### **Map & Level System**  
-✅ **TMX Map Loading:** Supports tile-based maps with defined paths.  
-✅ **Multiple Levels:** Basic level selection menu with progress tracking.  
-❌ **Dynamic Difficulty:** Levels do not yet scale in difficulty.  
-
-#### **UI & Visuals**  
-✅ **Main Menu & Level Select:** Basic navigation between screens.  
-✅ **Tower & Enemy Placeholders:** Simple shapes for debugging.  
-❌ **Polished Sprites & Animations:** Missing detailed graphics for towers, enemies, and projectiles.  
-❌ **Health Bars & UI Feedback:** No visual indicators for enemy health or tower stats.  
-
-#### **Technical Aspects**  
-✅ **Object-Oriented Design:** Clean separation of game logic (enemies, towers, maps).  
-✅ **JSON Save System:** Tracks level completion status.  
-❌ **Optimizations:** No performance handling for large enemy counts.  
-❌ **Error Handling:** Missing robust checks for missing assets.  
+A Python/Pygame tower-defense game where you place & upgrade towers to stop waves of enemies.
 
 ---
 
-## **How It Works**  
-1. **Main Menu:** Players can start the game, select levels, or quit.  
-2. **Level Selection:** Shows locked/unlocked levels (saved via JSON).  
-3. **Gameplay:**  
-   - Enemies spawn and follow a path.  
-   - Pre-placed towers attack enemies in range.  
-   - No player tower placement yet (planned feature).  
-4. **Game Loop:**  
-   - Enemies move → Towers shoot → Enemies die or reach the end.  
-   - Currently infinite; no win/lose state.  
+## 📝 Project Overview
+
+This project is a Tower Defense game. The player places towers to prevent waves of enemies from reaching a base. Towers have different attack types, and enemies grow tougher each wave. Clearing all 15 waves on one map unlocks the next map.
 
 ---
 
-## **Future Improvements**  
-- **Wave System:** Structured enemy waves with increasing difficulty.  
-- **Tower Shop:** Let players buy/upgrade towers using in-game currency.  
-- **Visual Polish:** Add sprites, animations, and sound effects.  
-- **More Levels:** Expand with varied maps and enemy types.  
-- **Game Balance:** Adjust tower stats, enemy health, and spawn rates.  
+## 🔍 Genre & Inspiration
+
+A well-known example in this genre is **Bloons Tower Defense**, where you place monkey towers to pop balloons.  
+My version focuses on:
+
+- Simpler mechanics  
+- Basic AI-controlled enemy movement  
+- Data tracking & analysis for performance
 
 ---
 
-## **Dependencies**  
-- **Pygame** (2D rendering)  
-- **PyTMX** (TMX map loading)  
+## 🎮 Gameplay Concept
 
-This project is **functional but incomplete**, serving as a foundation for a full tower defense game. With additional features and polish, it could become a complete, engaging experience.
+- **Grid-based map** with predefined tower slots  
+- **15 waves** per level; bosses on waves 5, 10, 15  
+- **Towers** auto-attack any enemy in range  
+- **Budget** is earned from defeated enemies  
+- **Game over** when base HP drops to 0 or after wave 15  
+- **Unlock progression**: Completing wave 15 on level N unlocks level N+1  
 
-The o.5v file game is in tag
+---
 
+## 🚀 Key Features
+
+- **Tower types**:  
+  - Archer (fast, single-target)  
+  - Cannon (area-damage)  
+  - Magic (piercing)  
+  - Ice (slow effect)  
+- **Enemy variety**:  
+  - Level 1: Goblin, Orc, Troll, Boss  
+  - Level 2: Slime, Werewolf, Werebear, OrcRider  
+- **Resource management**: Earn money → build & upgrade towers  
+- **Speed toggle**, **pause**, **restart**  
+
+---
+
+## 🏗️ Object-Oriented Design
+
+| Class         | Responsibilities                                        |
+|--------------:|:--------------------------------------------------------|
+| **GameManager** | Game loop, waves, stats logging, UI buttons           |
+| **Map**         | Load TMX maps, draw tiles & path, tower slot positions |
+| **Tower**       | Attack logic, upgrades, sell/refund                    |
+| **Enemy**       | Movement along path, animations, health & damage      |
+| **Projectile**  | Travel to target, apply damage                         |
+
+---
+
+## ⚙️ Algorithms
+
+1. **Pathfinding**  
+   Enemies follow a precomputed A★ path across tiles.  
+2. **Target sorting**  
+   Towers choose the closest/enemy‐least‐health based on proximity.  
+3. **Event-driven**  
+   Towers fire when an enemy enters range; waves spawn on timer or button.  
+4. **Dynamic difficulty**  
+   Enemy HP/speed scale with wave number.
+
+---
+
+## 📊 Data Tracking & Analysis
+
+We record per-wave metrics to `game_stats.csv`:
+
+| Wave | Enemies Defeated | Towers Placed | Placement Effectiveness | Damage Dealt | Wave Time (ms) | Currency Spent |
+|:----:|:----------------:|:-------------:|:-----------------------:|:------------:|:--------------:|:--------------:|
+|  1   |        …         |      …        |           …             |      …       |       …        |       …        |
+
+### 🔢 Why these metrics?
+
+- **Enemies Defeated**: Balances wave difficulty  
+- **Placement Efficiency**: Strategy effectiveness  
+- **Damage Dealt**: Tower power vs. enemy bulk  
+- **Wave Time**: Pacing & difficulty spikes  
+- **Resource Utilization**: Spending vs. performance  
+
+We’ll collect **≥ 50 waves** worth of data (across sessions) and visualize via Pandas & Matplotlib:
+
+- **Line graph** for enemies/wave  
+- **Scatter** for placement efficiency  
+- **Bar chart** for damage  
+- **Histogram** for wave times  
+- **Pie chart** for avg spending
+
+A simple viewer script (`stats_viewer.py`) or Jupyter notebook can generate these charts.
+
+---
+
+## 📅 Weekly Milestones
+
+| Week                    | Goals                                                     |
+|:------------------------|:----------------------------------------------------------|
+| 26 Mar –  2 Apr         | Basic map & tower placement                               |
+|  3 Apr –  9 Apr         | Enemy AI movement & pathfinding                           |
+| 10 Apr – 16 Apr         | Shooting mechanics, damage, upgrades                      |
+| 17 Apr – 23 Apr         | UI polish, resource tracking                              |
+| 24 Apr – 11 May         | Data collection, analysis tooling, bugfixes, final demo   |
+
+---
+
+## 📐 UML Class Diagram
+
+![UML Diagram](assets/uml/tower_defense_class_diagram.png)
+
+*(Place your `tower_defense_class_diagram.png` under `assets/uml/`.)*
+
+---
+
+## 📂 Repo Structure
+
+```text
+TowerDefense/
+├── assets/
+│   ├── maps/
+│   ├── enemy/
+│   ├── icon/
+│   └── uml/
+├── screenshots/
+│   ├── gameplay/
+│   └── visualization/
+├── main_menu.py
+├── game_manager.py
+├── maps.py
+├── enemy.py
+├── tower.py
+├── projectile.py
+├── stats_viewer.py
+├── game_stats.csv
+├── README.md
+├── DESCRIPTION.md
+├── requirements.txt
+└── LICENSE
