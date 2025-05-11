@@ -1,0 +1,5 @@
+pygame>=2.6.1
+pytmx>=3.41.3
+Pillow>=9.5.0
+pandas>=1.5.3
+matplotlib>=3.7.1

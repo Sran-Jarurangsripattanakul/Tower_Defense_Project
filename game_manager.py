@@ -28,7 +28,7 @@ class GameManager:
         self.health       = 10
 
         # Wave control
-        self.wave             = 0
+        self.wave             = 14
         self.wave_in_progress = False
         self.victory          = False
         self.paused           = False

@@ -5,7 +5,7 @@
       "file": "assets/maps/level1.tmx"
     },
     "level2": {
-      "completed": false,
+      "completed": true,
       "file": "assets/maps/level2.tmx"
     }
   }
