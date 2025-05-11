@@ -1,1 +1,14 @@
-# Tower_Defense_Project
+# Tower Defense
+
+## Installation & Running Instructions
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Sran-Jarurangsripattanakul/Tower_Defense_Project.git
+cd Tower_Defense_Project
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the game
+python main_menu.py
