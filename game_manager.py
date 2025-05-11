@@ -4,64 +4,74 @@ from tower import ArcherTower, CannonTower, MagicTower, IceTower
 from projectile import Projectile
 
 class GameManager:
-    def __init__(self, screen, map_obj, menu):
+    def __init__(self, screen, map_obj, menu,
+                 base_enemy_types=None,
+                 boss_class=None):
         pygame.font.init()
         self.screen = screen
         self.map    = map_obj
         self.menu   = menu
-        self.font   = pygame.font.Font(None, 36)
+        # Use Arial so we can render “≡”
+        self.font   = pygame.font.SysFont("Arial", 36)
+
+        # Enemy roster
+        self.base_enemy_types = base_enemy_types or [Goblin, Orc, Troll]
+        self.boss_class       = boss_class or Boss
+        self.enemy_types      = list(self.base_enemy_types)
 
         # Game state
         self.enemies     = []
         self.projectiles = []
         self.towers      = []
-        self.enemy_types = [Goblin, Orc, Troll]
 
         self.player_money = 100
         self.health       = 10
 
         # Wave control
-        self.wave            = 13
+        self.wave             = 0
         self.wave_in_progress = False
         self.victory          = False
         self.paused           = False
         self.game_over        = False
 
         # Spawning
-        self.spawn_timer     = 0
-        self.spawn_interval  = 800
+        self.spawn_timer      = 0
+        self.spawn_interval   = 800
         self.enemies_to_spawn = 0
         self.spawned_count    = 0
         self.is_boss_wave     = False
 
-        # Manual start
+        # Manual start trigger
         self.manual_wave_trigger = False
 
         # Speed toggle
         self.time_multiplier = 1
 
         # Tower slots
-        self.available_slots = map_obj.get_tower_points()
-        self.occupied_slots  = {}
-        self.selected_slot   = None
-        self.selected_tower  = None
+        self.available_slots    = map_obj.get_tower_points()
+        self.occupied_slots     = {}
+        self.selected_slot      = None
+        self.selected_tower     = None
         self.showing_tower_menu = False
-        self.tower_icons     = {}
-        self.tower_icon_rects = []
+        self.tower_icons        = {}
+        self.tower_icon_rects   = []
 
         # UI buttons
         w, h = self.screen.get_size()
         self.wave_button_rect  = pygame.Rect(w-150,  80, 130, 40)
         self.speed_button_rect = pygame.Rect(w-150, 130, 130, 40)
         self.menu_button_rect  = pygame.Rect(w- 50,  10,  40, 40)
-        
-        #victory window
+
+        # Victory/session stats
         self.session_wave_stats = []
-        self._summary_shown = False
+        self._summary_shown     = False
+
+        # Show/hide start button
+        self.show_wave_button = True
 
         self.load_tower_icons()
 
-        # Prepare CSV
+        # CSV for stats
         self.stats_path = "game_stats.csv"
         if not os.path.exists(self.stats_path):
             with open(self.stats_path, "w", newline="") as f:
@@ -92,111 +102,126 @@ class GameManager:
             "magic":  "assets/icon/magic_icon.png",
             "ice":    "assets/icon/ice_icon.png",
         }
-        for k, path in icons.items():
+        self.tower_costs = {
+            "archer": 30,
+            "cannon": 50,
+            "magic":  40,
+            "ice":    20,
+        }
+        for kind, path in icons.items():
             img = pygame.image.load(path)
-            self.tower_icons[k] = pygame.transform.scale(img, (40,40))
+            self.tower_icons[kind] = pygame.transform.scale(img, (40, 40))
 
     def start_new_wave(self):
         self.spawned_count = 0
         self._reset_wave_stats()
-        if self.wave in (5,10,15):
-            self.is_boss_wave = True
-            self.enemy_types  = [Boss, Goblin, Orc, Troll]
-            self.enemies_to_spawn = 1 + (5 + self.wave*2)
+        self.show_wave_button = False
+
+        # Boss waves?
+        if self.wave in (5, 10, 15):
+            self.is_boss_wave     = True
+            self.enemy_types      = [self.boss_class] + list(self.base_enemy_types)
+            self.enemies_to_spawn = 1 + (5 + self.wave * 2)
         else:
-            self.is_boss_wave = False
-            self.enemy_types  = [Goblin, Orc, Troll]
-            self.enemies_to_spawn = 5 + self.wave*2
-        self.wave_in_progress  = True
+            self.is_boss_wave     = False
+            self.enemy_types      = list(self.base_enemy_types)
+            self.enemies_to_spawn = 5 + self.wave * 2
+
+        self.wave_in_progress   = True
         self.manual_wave_trigger = False
 
     def update(self):
         now = pygame.time.get_ticks()
 
         if self.paused:
-            self._draw_pause_overlay(); return
+            self._draw_pause_overlay()
+            return
         if self.victory:
-            self._draw_victory(); return
+            self._draw_victory()
+            return
         if self.game_over:
-            self._draw_game_over(); return
+            self._draw_game_over()
+            return
 
-        # start wave
+        # Handle manual start
         if not self.wave_in_progress and self.manual_wave_trigger:
             self.wave += 1
             if self.wave > 15:
                 lvl = self.menu.selected_level
+                # mark current level complete
                 self.menu.level_progress[lvl]["completed"] = True
+                # unlock next level
+                next_level = f"level{int(lvl[-1]) + 1}"
+                if next_level in self.menu.level_progress:
+                    self.menu.level_progress[next_level]["completed"] = True
                 self.menu.save_progress()
                 self.victory = True
             else:
                 self.start_new_wave()
 
-        # spawning
+        # Spawn enemies
         if self.wave_in_progress and self.spawned_count < self.enemies_to_spawn:
             if now - self.spawn_timer >= self.spawn_interval // self.time_multiplier:
-                cls = Boss if self.is_boss_wave and self.spawned_count==0 else \
-                      self.enemy_types[self.spawned_count % len(self.enemy_types)]
+                cls = (self.boss_class if self.is_boss_wave and self.spawned_count == 0
+                       else self.enemy_types[self.spawned_count % len(self.enemy_types)])
                 self.enemies.append(cls(self.map.path))
                 self.spawned_count += 1
                 self.spawn_timer = now
 
-        # update enemies
+        # Update enemies
         for e in self.enemies[:]:
-            e.move(self.time_multiplier); e.draw(self.screen)
+            e.move(self.time_multiplier)
+            e.draw(self.screen)
             if not e.alive:
                 self.enemies.remove(e)
                 self.enemies_defeated += 1
                 self.player_money   += 10
-            elif e.current_point >= len(e.path)-1:
+            elif e.current_point >= len(e.path) - 1:
                 self.health -= 1
                 self.enemies.remove(e)
                 if self.health <= 0:
                     self.game_over = True
                     break
 
-        # update projectiles
+        # Update projectiles
         for p in self.projectiles[:]:
-            p.update(); p.draw(self.screen)
+            p.update()
+            p.draw(self.screen)
             if not p.alive:
                 self.total_damage += getattr(p, "damage", 0)
                 self.projectiles.remove(p)
 
-        # update towers
+        # Update towers
         for t in self.towers:
             t.shoot(self.enemies, now, self.projectiles, self.time_multiplier)
             t.draw(self.screen)
 
-        # UI
+        # UI & selection
         self._draw_ui()
         self.draw_tower_selection()
-        
-        # wave cleared?
+
+        # Wave cleared?
         if (self.wave_in_progress
             and self.spawned_count == self.enemies_to_spawn
             and not self.enemies):
-
-            # 1) compute how long the wave took
             wave_time = now - self._wave_start_time
-
-            # 2) record this wave in the in-memory session list
             self.session_wave_stats.append({
-                "wave":           self.wave,
-                "enemies":        self.enemies_defeated,
-                "damage":         self.total_damage,
-                "time_ms":        wave_time,
+                "wave": self.wave,
+                "enemies": self.enemies_defeated,
+                "damage": self.total_damage,
+                "time_ms": wave_time,
                 "currency_spent": self.currency_spent
             })
 
-            # 3) trim CSV to 49 rows then rewrite + append this wave
-            path = self.stats_path
-            with open(path, "r") as f:
+            # Trim & append CSV
+            with open(self.stats_path, "r") as f:
                 lines = f.readlines()
             header, data = lines[0], lines[1:]
             if len(data) >= 50:
                 data = data[1:]
-            with open(path, "w") as f:
+            with open(self.stats_path, "w") as f:
                 f.writelines([header] + data)
-            with open(path, "a", newline="") as f:
+            with open(self.stats_path, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([
                     self.wave,
@@ -208,12 +233,20 @@ class GameManager:
                     self.currency_spent
                 ])
 
-            # 4) reset your per-wave counters for the next wave
             self._reset_wave_stats()
-
-            # 5) allow the next wave to be started
             self.wave_in_progress = False
+            self.show_wave_button = True
 
+    def handle_click(self, pos):
+        if self.wave_button_rect.collidepoint(pos) and not self.wave_in_progress:
+            self.manual_wave_trigger = True
+            return
+        if self.speed_button_rect.collidepoint(pos):
+            self.time_multiplier = 2 if self.time_multiplier == 1 else 1
+            return
+        if self.menu_button_rect.collidepoint(pos):
+            self.paused = True
+            return
 
     def handle_click(self, pos):
         if self.wave_button_rect.collidepoint(pos) and not self.wave_in_progress:
@@ -287,37 +320,47 @@ class GameManager:
 
     def _draw_ui(self):
         # HUD
-        self.screen.blit(self.font.render(f"Money: {self.player_money}", True,(255,255,0)), (10,10))
-        self.screen.blit(self.font.render(f"Wave: {self.wave}",      True,(255,255,255)), (10,40))
-        self.screen.blit(self.font.render(f"HP: {self.health}",       True,(255,100,100)), (10,70))
+        self.screen.blit(self.font.render(f"Money: {self.player_money}", True, (255, 255, 0)), (10, 10))
+        self.screen.blit(self.font.render(f"Wave: {self.wave}", True, (255, 255, 255)), (10, 40))
+        self.screen.blit(self.font.render(f"HP: {self.health}", True, (255, 100, 100)), (10, 70))
 
-        # Start Wave button
-        pygame.draw.rect(self.screen, (70,70,70), self.wave_button_rect, border_radius=8)
-        lbl = self.font.render("Start Wave", True, (255,255,255))
-        self.screen.blit(lbl, lbl.get_rect(center=self.wave_button_rect.center))
+        # Start Wave / Finish button
+        if self.show_wave_button:
+            button_text = "Finish" if self.wave == 15 else "Start Wave"
+            pygame.draw.rect(self.screen, (70, 70, 70), self.wave_button_rect, border_radius=8)
+            lbl = self.font.render(button_text, True, (255, 255, 255))
+            self.screen.blit(lbl, lbl.get_rect(center=self.wave_button_rect.center))
 
         # Speed button
-        pygame.draw.rect(self.screen, (50,50,50), self.speed_button_rect, border_radius=8)
-        sl = self.font.render(f"Speed x{self.time_multiplier}", True, (255,255,255))
-        self.screen.blit(sl, self.speed_button_rect.move(10,5))
+        pygame.draw.rect(self.screen, (50, 50, 50), self.speed_button_rect, border_radius=8)
+        sl = self.font.render(f"Speed x{self.time_multiplier}", True, (255, 255, 255))
+        self.screen.blit(sl, self.speed_button_rect.move(10, 5))
 
         # Pause/Menu button
-        pygame.draw.rect(self.screen, (200,200,200), self.menu_button_rect)
-        mi = self.font.render("≡", True, (50,50,50))
+        pygame.draw.rect(self.screen, (200, 200, 200), self.menu_button_rect)
+        mi = self.font.render("≡", True, (50, 50, 50))
         self.screen.blit(mi, mi.get_rect(center=self.menu_button_rect.center))
+
 
 
     def draw_tower_selection(self):
         # Placement icons
         if self.selected_slot and self.showing_tower_menu:
-            x,y = self.selected_slot
-            offs, sp = 50, 50
+            x, y = self.selected_slot
+            offs, sp = 50, 60
             self.tower_icon_rects = []
+
             for i, kind in enumerate(["archer", "cannon", "magic", "ice"]):
+                # Draw icon
                 ico = self.tower_icons[kind]
-                rect = ico.get_rect(topleft=(x+offs, y-60+i*sp))
+                rect = ico.get_rect(topleft=(x + offs, y - 60 + i * sp))
                 self.screen.blit(ico, rect)
                 self.tower_icon_rects.append((rect, kind))
+
+                # Draw cost
+                cost = self.tower_costs[kind]
+                cost_text = self.font.render(f"${cost}", True, (255, 255, 255))
+                self.screen.blit(cost_text, (x + offs + 50, y - 55 + i * sp))
 
         # Upgrade panel
         
@@ -541,3 +584,4 @@ class GameManager:
                 # 4) Switch MainMenu state
                 self.menu.state = "main_menu"
                 self.menu.game_started = False
+

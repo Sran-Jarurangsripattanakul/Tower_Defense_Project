@@ -1,5 +1,3 @@
-# stats_viewer.py
-
 import tkinter as tk
 from tkinter import ttk
 import pandas as pd
@@ -36,7 +34,7 @@ def main():
     def add_chart_tab(title, plot_func):
         frame = ttk.Frame(notebook)
         notebook.add(frame, text=title)
-        fig = Figure(figsize=(5, 3), dpi=100)
+        fig = Figure(figsize=(6, 4), dpi=100)
         ax = fig.add_subplot(111)
         plot_func(ax)
         canvas = FigureCanvasTkAgg(fig, master=frame)
@@ -69,10 +67,20 @@ def main():
         ax.set_ylabel("Frequency")
 
     def plot_spending(ax):
-        # Pie chart of average spending categories
-        avg_spent = df["Currency Spent"].mean()
-        ax.pie([avg_spent], labels=["Avg Currency Spent"], autopct='%1.1f%%')
-        ax.set_title("Average Currency Spent per Wave")
+        waves  = df["Wave"].astype(str).tolist()
+        spends = df["Currency Spent"].tolist()
+
+        # # Option A: Bar chart of spending per wave
+        # ax.bar(waves, spends)
+        # ax.set_title("Currency Spent per Wave")
+        # ax.set_xlabel("Wave")
+        # ax.set_ylabel("Currency Spent")
+
+        # Option B: Pie chart of spend distribution
+        # Uncomment below to use pie instead
+        ax.clear()
+        ax.pie(spends, labels=waves, autopct='%1.1f%%')
+        ax.set_title("Spend Distribution Across Waves")
 
     # Add the chart tabs
     add_chart_tab("Enemies Defeated", plot_enemies)
